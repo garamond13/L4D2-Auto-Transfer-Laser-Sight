@@ -5,7 +5,7 @@
 #include <sdktools>
 #include <sdkhooks>
 
-#define PLUGIN_VERSION "1.0.0"
+#define PLUGIN_VERSION "1.0.1"
 
 #define TEAM_SURVIVORS 2
 #define WEAPON_SLOT_PRIMARY 0
@@ -49,18 +49,14 @@ public void on_player_death(Event event, const char[] name, bool dontBroadcast)
 
 public void OnClientPutInServer(int client)
 {
-	if (client > 0) {
-	    SDKHook(client, SDKHook_WeaponEquipPost, on_client_weapon_equip);
-	    SDKHook(client, SDKHook_WeaponDropPost, on_client_weapon_drop);
-    }
+	SDKHook(client, SDKHook_WeaponEquipPost, on_client_weapon_equip);
+	SDKHook(client, SDKHook_WeaponDropPost, on_client_weapon_drop);
 }
 
 public void OnClientDisconnect(int client)
 {
-	if (client > 0) {
-	    SDKUnhook(client, SDKHook_WeaponEquipPost, on_client_weapon_equip);
-	    SDKUnhook(client, SDKHook_WeaponDropPost, on_client_weapon_drop);
-    }
+	SDKUnhook(client, SDKHook_WeaponEquipPost, on_client_weapon_equip);
+	SDKUnhook(client, SDKHook_WeaponDropPost, on_client_weapon_drop);
 }
 
 //has to be delayed after on_client_weapon_drop()
@@ -79,7 +75,7 @@ public Action on_client_weapon_equip_delayed(Handle timer)
 
 	    if (g_weapon > 0 && IsValidEntity(g_weapon)) {
             char netclass[128];
-	        GetEntityNetClass(g_weapon, netclass, 128);
+	        GetEntityNetClass(g_weapon, netclass, sizeof(netclass));
 
             //does this weapon support upgrades
 	        if (FindSendPropInfo(netclass, "m_upgradeBitVec") > 0) {
@@ -88,7 +84,7 @@ public Action on_client_weapon_equip_delayed(Handle timer)
 	            int upgrades = GetEntProp(g_weapon, Prop_Send, "m_upgradeBitVec");
 
                 //does primary weapon already have laser sight
-	            if (was_laser_removed && !(upgrades & WEAPON_UPGRADE_FLAG_LASER)){
+	            if (was_laser_removed && !(upgrades & WEAPON_UPGRADE_FLAG_LASER)) {
                     
                     //add laser sight to primary weapon
 	                SetEntProp(g_weapon, Prop_Send, "m_upgradeBitVec", upgrades | WEAPON_UPGRADE_FLAG_LASER);
@@ -119,7 +115,7 @@ public Action on_client_weapon_drop_delayed(Handle timer)
 
 	if (g_client > 0 && IsClientInGame(g_client) && GetClientTeam(g_client) == TEAM_SURVIVORS && g_weapon > 0 && IsValidEntity(g_weapon)) {
 	    char netclass[128];
-	    GetEntityNetClass(g_weapon, netclass, 128);
+	    GetEntityNetClass(g_weapon, netclass, sizeof(netclass));
 
         //this weapon does not support upgrades
 	    if (FindSendPropInfo(netclass, "m_upgradeBitVec") > 0) {
@@ -138,4 +134,9 @@ public Action on_client_weapon_drop_delayed(Handle timer)
         }
     }
     return Plugin_Continue;
+}
+
+public void OnMapEnd()
+{
+    was_laser_removed = false;
 }
